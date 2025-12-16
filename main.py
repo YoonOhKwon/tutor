@@ -54,14 +54,24 @@ def get_notices():
 # 3) AI 요청 (prompt만 사용, text는 무시)
 # -------------------------
 @app.post("/summarize")
+
+
+@app.post("/summarize")
 def summarize_api(data: dict):
     prompt = (data.get("prompt") or "").strip()
-    if not prompt:
-        return {"result": "정답: \n해설: 프롬프트가 비어 있습니다."}
 
-    # ✅ prompt만 사용
-    result = ai_summarize(prompt, "")
-    return {"result": result}
+    if not prompt:
+        return {"result": "정답:\n해설: 프롬프트가 비어 있습니다."}
+
+    try:
+        result = ai_summarize(prompt, "")
+        return {"result": result}
+    except Exception as e:
+        # 🔥 에러를 그대로 프론트로 내려줌
+        return {
+            "result": f"정답:\n해설: 서버 오류 발생\n{type(e).__name__}: {e}"
+        }
+
 
 # -------------------------
 # 4) 서버 캐시 갱신 버튼은 의미 없음
@@ -80,3 +90,4 @@ if __name__ == "__main__":
     import uvicorn
     import os
     uvicorn.run("main:app", host="0.0.0.0", port=int(os.getenv("PORT", "8000")))
+
