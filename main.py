@@ -2,20 +2,17 @@ from cache import load_titles_cached, load_contents_cached, load_course_titles_c
 from ai_client import ai_summarize
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import json
 from fastapi.responses import FileResponse
-
 
 app = FastAPI()
 
 # CORS 설정
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],   # 나중에 Vercel 도메인으로 좁히면 더 안전
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 @app.get("/download/uploader")
 def download_uploader():
@@ -26,7 +23,6 @@ def download_uploader():
         media_type="application/octet-stream"
     )
 
-
 # -------------------------
 # 1) 로컬 크롤링 JSON → 서버로 업로드
 # -------------------------
@@ -36,9 +32,7 @@ def upload_cache(data: dict):
     contents = data["contents"]
     courses = data["courses"]
 
-    # 저장
     save_cache(titles, contents, courses)
-
     return {"status": "ok", "message": "캐시 업로드 완료"}
 
 # -------------------------
@@ -57,13 +51,16 @@ def get_notices():
     }
 
 # -------------------------
-# 3) AI 요청
+# 3) AI 요청 (prompt만 사용, text는 무시)
 # -------------------------
 @app.post("/summarize")
 def summarize_api(data: dict):
-    notice = data["text"]
-    prompt = data.get("prompt", "요약해줘")
-    result = ai_summarize(prompt, notice)
+    prompt = (data.get("prompt") or "").strip()
+    if not prompt:
+        return {"result": "정답: \n해설: 프롬프트가 비어 있습니다."}
+
+    # ✅ prompt만 사용
+    result = ai_summarize(prompt, "")
     return {"result": result}
 
 # -------------------------
@@ -82,4 +79,3 @@ def refresh_cache():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8000)
-
